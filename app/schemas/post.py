@@ -118,7 +118,7 @@ class BatchPostsOut(BaseModel):
 
 class TopPostAuthorOut(BaseModel):
     uid: str
-    nickname: str
+    username: str
     avatar_url: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
