@@ -4181,9 +4181,9 @@
             "type": "string",
             "title": "Uid"
           },
-          "username": {
+          "nickname": {
             "type": "string",
-            "title": "Username"
+            "title": "Nickname"
           },
           "avatar_url": {
             "anyOf": [
@@ -4200,7 +4200,7 @@
         "type": "object",
         "required": [
           "uid",
-          "username"
+          "nickname"
         ],
         "title": "TopPostAuthorOut"
       },
