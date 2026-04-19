@@ -38,7 +38,9 @@ from fastapi.encoders import jsonable_encoder
 POST_CACHE_KEY_PATTERN = "post:{pid}"      # 缓存 key 模板
 POST_CACHE_TTL_SECONDS = 60 * 5           # 缓存过期时间 5 分钟，可自行调整
 
-#---------------------------------------- 增 -----------------------------------------
+# ---------------------------------------- 增 -----------------------------------------
+
+
 def create_post(
     user_repo: IUserRepository,
     post_repo: IPostRepository,
@@ -58,7 +60,7 @@ def create_post(
     user = user_repo.get_user_by_uid(data.author_id)
     if not user:
         raise UserNotFound(f"user {data.author_id} not found")
-    
+
     # 2. 创建 posts 基本记录
     post_only = PostOnlyCreate(
         author_id=data.author_id,
@@ -83,7 +85,7 @@ def create_post(
     logger.info(f"Initialized post_stats for pid={pid}")
 
     # 5. 使用仓库封装的 get_post_by_pid 返回完整结构（含内容 + 统计）
-    post_out = post_repo.author_get_post_by_pid(pid = pid, author_id= data.author_id)
+    post_out = post_repo.author_get_post_by_pid(pid=pid, author_id=data.author_id)
     if not post_out:
         # 理论上不应该发生，防御性处理
         raise PostNotFound(f"post {pid} not found after creation")
@@ -91,14 +93,14 @@ def create_post(
     return post_out.model_dump() if to_dict else post_out
 
 
-#------------------------------- 用户：查阅，更新，软删 ------------------------------------
+# ------------------------------- 用户：查阅，更新，软删 ------------------------------------
 # 添加 Redis 缓存逻辑
 def get_post_by_pid(
     post_repo: IPostRepository,
     pid: str,
     to_dict: bool = True,
     cache: Optional[Redis] = None,
-) -> Dict | Optional[PostOut]:
+) -> Union[Dict, Optional[PostOut]]:
     """
     获取单个帖子详情（含内容 + 统计）
     加入 Redis 缓存逻辑：
@@ -129,7 +131,8 @@ def get_post_by_pid(
         return None
     return post.model_dump() if to_dict else post
 
-def get_batch_posts(post_repo: IPostRepository, page: int = 0, page_size: int = 10, to_dict: bool = True,) -> Dict | BatchPostsOut:
+
+def get_batch_posts(post_repo: IPostRepository, page: int = 0, page_size: int = 10, to_dict: bool = True,) -> Union[Dict, BatchPostsOut]:
     """
     分页获取帖子列表：
     - 按你的仓库实现默认为 _id 倒序
@@ -137,6 +140,7 @@ def get_batch_posts(post_repo: IPostRepository, page: int = 0, page_size: int = 
     """
     result = post_repo.get_batch_posts(page=page, page_size=page_size)
     return result.model_dump() if to_dict else result
+
 
 def get_posts_by_author(user_repo: IUserRepository, post_repo: IPostRepository, data: PostGet, page: int = 0, page_size: int = 10, to_dict: bool = True,) -> Union[Dict, BatchPostsOut]:
     """
@@ -148,9 +152,10 @@ def get_posts_by_author(user_repo: IUserRepository, post_repo: IPostRepository, 
     author = user_repo.get_user_by_uid(data.author_id)
     if not author:
         raise UserNotFound(f"author {data.author_id} not found")
-    
+
     result = post_repo.get_posts_by_author(data=data, page=page, page_size=page_size,)
     return result.model_dump() if to_dict else result
+
 
 def update_post(post_repo: IPostRepository, pid: str, data: PostUpdate) -> bool:
     """
@@ -165,6 +170,7 @@ def update_post(post_repo: IPostRepository, pid: str, data: PostUpdate) -> bool:
         logger.warning(f"Update post failed, pid={pid} not found")
     return ok
 
+
 def soft_delete_post(post_repo: IPostRepository, pid: str,) -> bool:
     """
     软删除帖子：
@@ -178,7 +184,8 @@ def soft_delete_post(post_repo: IPostRepository, pid: str,) -> bool:
         logger.warning(f"Soft delete failed, post pid={pid} not found")
     return ok
 
-#--------------------------------- 审核员：查阅，审核 --------------------------------------
+# --------------------------------- 审核员：查阅，审核 --------------------------------------
+
 
 def get_post_review(post_repo: IPostRepository, pid: str, to_dict: bool = True,) -> Union[Dict, PostReviewOut]:
     """
@@ -266,7 +273,7 @@ def review_post(post_repo: IPostRepository, pid: str, data: PostReviewUpdate, to
     return updated.model_dump() if to_dict else updated
 
 
-#---------------------------------- 管理员：查阅，硬删除，恢复帖子 -------------------------------------
+# ---------------------------------- 管理员：查阅，硬删除，恢复帖子 -------------------------------------
 
 def admin_get_post_by_pid(post_repo: IPostRepository, pid: str, to_dict: bool = True,) -> Union[Dict, PostAdminOut]:
     """
@@ -329,6 +336,7 @@ def admin_list_posts_by_author(post_repo: IPostRepository, author_id: str, page:
     )
     return result.model_dump() if to_dict else result
 
+
 def hard_delete_post(post_repo: IPostRepository, pid: str,) -> bool:
     """
     硬删除帖子：
@@ -341,6 +349,7 @@ def hard_delete_post(post_repo: IPostRepository, pid: str,) -> bool:
     else:
         logger.warning(f"Hard delete failed, post pid={pid} not found")
     return ok
+
 
 def restore_post(
     post_repo: IPostRepository,
@@ -359,13 +368,16 @@ def restore_post(
     logger.info(f"[ADMIN] restored post pid={pid}")
     return True
 
-#----------------------------------- 热榜用 ----------------------------------------
+# ----------------------------------- 热榜用 ----------------------------------------
+
+
 def get_top_liked_posts(post_repo: IPostRepository, limit: int = 10, since_days: int = 7) -> dict:
     """
     获取近期点赞数最高的帖子（业务层）
     TODO: Implement assembly to TopPostsResponse
     """
     return {"items": []}
+
 
 def get_top_commented_posts(post_repo: IPostRepository, limit: int = 10, since_days: int = 7) -> dict:
     """
